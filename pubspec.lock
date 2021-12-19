@@ -15,6 +15,27 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.8.2"
+  async_extension:
+    dependency: transitive
+    description:
+      name: async_extension
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.9"
+  async_task:
+    dependency: "direct main"
+    description:
+      name: async_task
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.14"
+  channel:
+    dependency: "direct main"
+    description:
+      name: channel
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.0.0"
   charcode:
     dependency: transitive
     description:
@@ -99,6 +120,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.8.1"
+  pedantic:
+    dependency: "direct main"
+    description:
+      name: pedantic
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.11.1"
   shelf:
     dependency: transitive
     description:
@@ -128,7 +156,7 @@ packages:
     source: hosted
     version: "1.10.0"
   stream_channel:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: stream_channel
       url: "https://pub.dartlang.org"
@@ -148,6 +176,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.2.0"
+  threading:
+    dependency: "direct main"
+    description:
+      name: threading
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.10"
   typed_data:
     dependency: transitive
     description:

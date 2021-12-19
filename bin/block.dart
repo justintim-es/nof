@@ -3,111 +3,12 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:hex/hex.dart';
-
-class Input {
-	final int idx;
-	final String signature;
-	Input(this.idx, this.signature);
-}
-class Output {
-	final String publicKey;
-	Output(this.publicKey);
-}
-class Input {
-	final int idx;
-	final String signature;
-	Input(this.idx, this.signature);
-}
-class Output {
-	final String publicKey;
-	Output(this.publicKey);
-}
-
-
-class GladiatorInput extends Input {
-	final String gladiatorId;
-	GladiatorInput(int idx, String signature, this.gladiatorId): super(idx, signature);
-	GladiatorInput.fromJson(Map<String, dynamic> json): gladiatorId = json['gladiatorId'], super(json['idx'], json['signature']);
-	Map<String, dynamic> toJson() => {
-		'idx': idx,
-		'signature': signature,
-		'gladiatorId': gladiatorId
-	};
-}
-class GladiatorOutput extends Output {
-	final String defence;
-	GladiatorOutput(String publicKey): defence = Utils.CreateCryptoRandomString(2), super(publicKey);
-	GladiatorOutput.fromJson(Map<String, dynamic> json): defence = json['defence'], super(json['publicKey']);
-	Map<String, dynamic> toJson() => {
-		'publicKey': publicKey,
-		'defence': defence
-	};
-}
-
-class Gladiator {
-	final List<GladiatorInput> inputs;
-	final List<GladiatorOutput> outputs;
-	final String id;
-	Gladiator(this.inputs, this.outputs): 
-	id = HEX.encode(
-		sha512.convert(
-			utf8.encode(inputs.map((x) => x.toJson()).toString())
-		 + utf8.encode(outputs.map((x) => x.toJson()).toString())
-		 ).bytes
-	);
-
-	Gladiator.fromJson(Map<String, dynamic> json): 
-	inputs = List<GladiatorInput>.from(json['inputs'].map((x) => GladiatorInput.fromJson(x))), 
-	outputs = List<GladiatorOutput>.from(json['outputs'].map((x) => GladiatorOutput.fromJson(x))),
-	id = json['id'];
-	
-	Map<String, dynamic> toJson() => {
-		'inputs': inputs.map((x) => x.toJson()).toList(),
-		'outputs': outputs.map((x) => x.toJson()).toList(),
-		'id': id
-	};
-}
-class TxInput extends Input {
-	final String txId;
-	TxInput(int idx, String signature, this.txId): super(idx, signature);
-	TxInput.fromJson(Map<String, dynamic> json): txId = json['txId'], super(json['idx'], json['signature']);
-	Map<String, dynamic> toJson() => {
-		'txId': txId,
-		'signature': signature,
-		'txId': txId
-	};
-}
-class TxOutput extends Output {
-	final BigInt value;
-	TxOutput(String publicKey, this.value): super(publicKey);
-	TxOutput.fromJson(Map<String, dynamic> json): value = BigInt.parse(json['value']), super(json['publicKey']);
-	Map<String, dynamic> toJson() => {
-		'publicKey': publicKey,
-		'value': value.toString()
-	};
-}
-class Tx {
-	final List<TxInput> inputs;
-	final List<TxOutput> outputs;
-	final String id;
-	Tx(this.inputs, this.outputs): 
-	id = HEX.encode(
-		sha512.convert(
-			utf8.encode(inputs.map((x) => x.toJson()).toString()) + 
-			utf8.encode(outputs.map((x) => x.toJson()).toString())
-		).bytes
-	);
-	Tx.fromJson(Map<String, dynamic> json): 
-	inputs = List<TxInput>.from(json['inputs'].map((x) => TxInput.fromJson(x))), 
-	outputs = List<TxOutput>.from(json['outputs'].map((x) => TxOutput.fromJson(x))), 
-	id = json['id'];
-	Map<String, dynamic> toJson() => {
-		'inputs': inputs.map((x) => x.toJson()).toList(),
-		'outputs': outputs.map((x) => x.toJson()).toList(),
-		'id': id
-	};
-}
-
+import './gladiator.dart';
+import './tx.dart';	
+import './wallet.dart';
+import 'package:pedantic/pedantic.dart';
+import 'package:channel/channel.dart';
+import 'package:async_task/async_task.dart';
 
 enum Script {
 	INCIPIO,
@@ -128,30 +29,39 @@ extension ScriptEschex on Script {
 }
 class ToHash {
 	final Script script;
-	final int nonce;
+	int nonce;
 	final int blockNumber;
 	final int difficulty;
 	final int totalDifficulty;
+	int timestamp;
 	final String prevHash;
 	final List<Gladiator> gladiators;
 	final List<Tx> refreeTxs;
+	final Wallet wallet;
 	ToHash(
 		this.script, 
 		this.nonce, 
 		this.blockNumber, 
 		this.difficulty, 
-		this.totalDifficulty, 
+		this.totalDifficulty,
+		this.timestamp, 
 		this.prevHash, 
 		this.gladiators, 
 		this.refreeTxs
-	);
+	): wallet = Wallet();
+	mine() {
+		this.nonce += 1;
+		this.timestamp = DateTime.now().millisecondsSinceEpoch;
+	}
 	ToHash.fromJson(Map<String, dynamic> json): 
 		script = ScriptEschex.fromJson(json['script']), 
 		nonce = json['nonce'], 
 		blockNumber = json['blockNumber'], 
 		difficulty = json['difficulty'], 
 		totalDifficulty = json['totalDifficulty'],
+		timestamp = json['timestamp'],
 		prevHash = json['prevHash'],
+		wallet =  Wallet.fromJson(json['wallet']),
 		gladiators = List<Gladiator>.from(json['gladiators'].map((x) => Gladiator.fromJson(x))),
 		refreeTxs = List<Tx>.from(json['refreeTxs'].map((x) => Tx.fromJson(x)));
 	Map<String, dynamic> toJson() => {
@@ -160,7 +70,9 @@ class ToHash {
 		'blockNumber': blockNumber,
 		'difficulty': difficulty,
 		'totalDifficulty': totalDifficulty,
+		'timestamp': timestamp,
 		'prevHash': prevHash,
+		'wallet': wallet.toJson(),
 		'gladiators': gladiators.map((x) => x.toJson()).toList(),
 		'refreeTxs': refreeTxs.map((x) => x.toJson()).toList()
 	};	
@@ -168,39 +80,67 @@ class ToHash {
 
 class Block {
 	final ToHash toHash;
-	final String hash;
-	Block(this.toHash): hash = HEX.encode(sha512.convert(utf8.encode(toHash.toJson().toString())).bytes); 	
+	String hash;
+	Block(this.toHash): hash = HEX.encode(sha512.convert(utf8.encode(json.encode(toHash.toJson()))).bytes); 	
 
 	Map<String, dynamic> toJson() => {
 		'toHash': toHash.toJson(),
 		'hash': hash
 	};
-	Block.fromJson(Map<String, dynamic> json): toHash = ToHash.fromJson(json['toHash']), hash = json['hash'];
 
-	void save(txt) {
-		var file = File(txt);
-		var sink = file.openWrite();
-		var jsoschon = this.toJson();
-		sink.write(json.encode(jsoschon) + '\n');
+	Block.fromJson(Map<String, dynamic> json): toHash = ToHash.fromJson(json['toHash']), hash = json['hash'];
+	Block.mined(this.hash, this.toHash);
+	static Function efectus(fileName, toHash) {
+		void efec() async {
+			String hash = '';
+			do {
+				toHash.mine();
+				hash = HEX.encode(sha512.convert(utf8.encode(json.encode(toHash.toJson()))).bytes);	
+			} while (!hash.startsWith('0' * toHash.difficulty));
+			Block bloschock = Block.mined(hash, toHash);
+			File file = File(fileName);
+			await file.writeAsString(json.encode(bloschock.toJson()) + '\n', mode: FileMode.append);	
+		}
+		return efec;
+	
+	}
+	void save(File file) {
+		var sink = file.openWrite(mode: FileMode.append);
+		sink.write(json.encode(this.toJson()) + '\n');
 		sink.close();
 	}
-	static int blockNumber(lines) async {
+	static Future<int> blockNumber(Stream<String> lines) async {
 		return await lines.length;
 	}	
-	static int difficulty(lines) async {
+	static Future<int> difficulty(Stream<String> lines) async {
 		List<GladiatorInput> inputs = [];
 		List<GladiatorOutput> outputs = [];
+		List<Gladiator> gladiators = [];
 		await for (String line in lines) {
 			Block block = Block.fromJson(json.decode(line));
+			gladiators.addAll(block.toHash.gladiators);
 			for(Gladiator gladiator in block.toHash.gladiators) {
 			 	inputs.addAll(gladiator.inputs);
-			 	outputs.addAll(gladiator.outputs);		
+			 	outputs.add(gladiator.output);		
 			}
-		}
-		for(GladiatorOutput output in outputs) {
 			for(GladiatorInput input in inputs) {
-				if (output.gladiatorId)
+				for (Gladiator gladiator in gladiators) {				
+					if (input.gladiatorId == gladiator.id) {
+						outputs.remove(gladiator.output);
+					}
+				}
 			}
+			return outputs.length;
 		}
+		return 0;
 	}
+	static Future<int> totalDifficulty(Stream<String> lines) async {
+		int totalDifficulty = 0;
+		await for(String line in lines) {
+			Block block = Block.fromJson(json.decode(line));
+			totalDifficulty += block.toHash.difficulty;
+		}
+		return totalDifficulty;
+	}
+	Block.prevBlock(String last): toHash = Block.fromJson(json.decode(last)).toHash, hash = Block.fromJson(json.decode(last)).hash;
 }

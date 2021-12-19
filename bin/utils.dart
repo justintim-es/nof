@@ -8,4 +8,7 @@ class Utils {
 		var values = List<int>.generate(length, (i) => _random.nextInt(256));
 		return HEX.encode(values);
 	}
+	static List<int> HexToListOfInt(String hex) {
+		 return List<int>.generate(hex.length ~/ 2, (i) => int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16));
+	}
 }
