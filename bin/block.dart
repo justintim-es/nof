@@ -7,9 +7,6 @@ import './gladiator.dart';
 import './tx.dart';	
 import './wallet.dart';
 import 'package:pedantic/pedantic.dart';
-import 'package:channel/channel.dart';
-import 'package:async_task/async_task.dart';
-
 enum Script {
 	INCIPIO,
 	PRODUCED,
@@ -18,7 +15,6 @@ enum Script {
 }
 extension ScriptEschex on Script {
 	static fromJson(String name) {
-		print(name);
 		switch(name) {
 			case 'INCIPIO': return Script.INCIPIO;
 			case 'PRODUCED': return Script.PRODUCED;
@@ -79,9 +75,9 @@ class ToHash {
 }
 
 class Block {
-	final ToHash toHash;
 	String hash;
-	Block(this.toHash): hash = HEX.encode(sha512.convert(utf8.encode(json.encode(toHash.toJson()))).bytes); 	
+	final ToHash toHash;
+	Block(this.hash, this.toHash); 	
 
 	Map<String, dynamic> toJson() => {
 		'toHash': toHash.toJson(),
@@ -89,24 +85,20 @@ class Block {
 	};
 
 	Block.fromJson(Map<String, dynamic> json): toHash = ToHash.fromJson(json['toHash']), hash = json['hash'];
-	Block.mined(this.hash, this.toHash);
-	static Function efectus(fileName, toHash) {
-		void efec() async {
-			String hash = '';
-			do {
-				toHash.mine();
-				hash = HEX.encode(sha512.convert(utf8.encode(json.encode(toHash.toJson()))).bytes);	
-			} while (!hash.startsWith('0' * toHash.difficulty));
-			Block bloschock = Block.mined(hash, toHash);
-			File file = File(fileName);
-			await file.writeAsString(json.encode(bloschock.toJson()) + '\n', mode: FileMode.append);	
-		}
-		return efec;
-	
+	static Future<Block> incipio(ToHash toHash) async {
+		return Block(HEX.encode(sha512.convert(utf8.encode(json.encode(toHash.toJson()))).bytes), toHash);		
+	}
+	static Future<Block> efectus(ToHash toHash) async {
+		String hash = '';
+		do {
+			toHash.mine();
+			hash = HEX.encode(sha512.convert(utf8.encode(json.encode(toHash.toJson()))).bytes);	
+		} while (!hash.startsWith('0' * toHash.difficulty));
+		return Block(hash, toHash);
 	}
 	void save(File file) {
 		var sink = file.openWrite(mode: FileMode.append);
-		sink.write(json.encode(this.toJson()) + '\n');
+		sink.write(json.encode(toJson()) + '\n');
 		sink.close();
 	}
 	static Future<int> blockNumber(Stream<String> lines) async {

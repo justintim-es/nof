@@ -1,4 +1,4 @@
-import './base.dart';
+~import './base.dart';
 import 'package:hex/hex.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
@@ -42,4 +42,5 @@ class Tx {
 		'outputs': outputs.map((x) => x.toJson()).toList(),
 		'id': id
 	};
+
 }
