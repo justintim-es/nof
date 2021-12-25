@@ -5,10 +5,9 @@ import './utils.dart';
 import 'package:crypto/crypto.dart';
 class GladiatorInput extends BaseInput {
 	final String gladiatorId;
-	GladiatorInput(int idx, String signature, this.gladiatorId): super(idx, signature);
-	GladiatorInput.fromJson(Map<String, dynamic> json): gladiatorId = json['gladiatorId'], super(json['idx'], json['signature']);
+	GladiatorInput(String signature, this.gladiatorId): super(signature);
+	GladiatorInput.fromJson(Map<String, dynamic> json): gladiatorId = json['gladiatorId'], super(json['signature']);
 	Map<String, dynamic> toJson() => {
-		'idx': idx,
 		'signature': signature,
 		'gladiatorId': gladiatorId
 	};
@@ -25,25 +24,25 @@ class GladiatorOutput {
 }
 
 class Gladiator {
-	final GladiatorOutput output;
-	final List<GladiatorInput> inputs;
+	final GladiatorOutput? output;
+	final GladiatorInput? input;
 	final String id;
-	Gladiator(this.output, this.inputs): 
+	Gladiator(this.output, this.input):
 	id = HEX.encode(
 		sha512.convert(
-			utf8.encode(json.encode(inputs.map((x) => x.toJson()).toList()))
-		 + utf8.encode(json.encode(output.toJson()))
+			utf8.encode(json.encode(input?.toJson()))
+		 + utf8.encode(json.encode(output?.toJson()))
 		 ).bytes
 	);
 
 	Gladiator.fromJson(Map<String, dynamic> json): 
-		inputs = List<GladiatorInput>.from(json['inputs'].map((x) => GladiatorInput.fromJson(x))), 
-		output = GladiatorOutput.fromJson(json['output']),
+		input = json['input'] != null ? GladiatorInput.fromJson(json['input'])  : null,
+		output = json['output'] != null  ? GladiatorOutput.fromJson(json['output']) : null,
 		id = json['id'];
 	
 	Map<String, dynamic> toJson() => {
-		'inputs': inputs.map((x) => x.toJson()).toList(),
-		'output': output.toJson(),
+		'input': input?.toJson(),
+		'output': output?.toJson(),
 		'id': id
 	};
 }
